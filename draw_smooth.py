@@ -18,6 +18,7 @@ def calculate_dis(center1,center2):
     return np.sqrt(np.sum(np.square(center1 - center2)))
 
 
+
 # ball json -> dict
 ballDict = read_json("./json/ball_personid.json")
 personDict = read_json("./json/poseAdd2Id.json")
@@ -168,10 +169,9 @@ while True:
 #                out.write(frame_tmp) 
 #                out.write(frame_tmp) 
 #                
-    img_mix = cv2.addWeighted(frame, 0.9, oriFrame, 0.1, 0)
-    cv2.imshow("test", img_mix)
-    #cv2.imshow("test", frame)
-    #cv2.imshow("test", oriFrame)
+    #img_mix = cv2.addWeighted(frame, 0.9, oriFrame, 0.1, 0)
+    #cv2.imshow("test", img_mix)
+    cv2.imshow("test", frame)
     out.write(frame) 
     frame_num = frame_num + 1
     if cv2.waitKey(1) & 0xff == ord('q'):
