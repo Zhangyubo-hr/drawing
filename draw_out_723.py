@@ -91,7 +91,6 @@ while True:
                 continue
             #thickness = int(np.sqrt(64 / float(j + 1)) * 2)
             thickness = int(np.sqrt(32 + j * 6))
-            #thickness = int(np.sqrt(72 - j * 5))
             #cv2.circle(frame, (pts[track_id][j]), 2, (color), thickness)
             cv2.circle(frame, (pts[_id][j]), thickness, (colorT),  -1)
 
