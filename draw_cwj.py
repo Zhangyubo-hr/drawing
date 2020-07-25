@@ -23,7 +23,8 @@ ballDict = read_json("./json/ball_personid.json")
 personDict = read_json("./json/poseAdd2Id.json")
 
 # color for different person
-COLORS = [[0, 255, 0], [0, 0, 255], [255, 0, 255], [255, 255, 0], [0, 255, 255]]
+# COLORS = [[0, 255, 0], [0, 0, 255], [255, 0, 255], [255, 255, 0], [0, 255, 255]]
+COLORS = [[120, 220, 0], [100, 100, 255], [150, 80, 80], [255, 200, 100], [0, 180, 255]]
 # COLORS = [[100, 200, 100], [100, 100, 200], [200, 100, 200], [200, 200, 100], [100, 200, 200]]
 
 # cv2 input, output, para ...
@@ -40,7 +41,7 @@ xpersonQue = [deque(maxlen = 10) for _ in range(10)]
 ypersonQue = [deque(maxlen = 10) for _ in range(10)]
 
 # in order to draw ball track
-pts = [deque(maxlen=30) for _ in range(9999)]
+pts = [deque(maxlen=30) for _ in range(99)]
 time_since_update = {}
 for _ in range(60):
     time_since_update[str(_)] = 100
@@ -53,12 +54,21 @@ posY = np.zeros((1097, 6))
 smoothX = [[], [], [], [], [], []]
 smoothY = [[], [], [], [], [], []]
 
+smooT =[0, 0, 0, 0, 0]
 # 0 - 1096
 for kFrame, vFrame in personDict.items():
     # 1 - 5
     for kPerson, vPerson in vFrame.items():
-        x = (vPerson[0] * 4 + vPerson[2]) / 5
-        y = vPerson[1] + 5
+        xx = (vPerson[0] + vPerson[2]) / 2
+        yy = (vPerson[1] + vPerson[3]) / 2
+        dx = (vPerson[2] - vPerson[0]) / 2
+        dy = (vPerson[1] - vPerson[3]) / 2
+        dist = np.sqrt(dx ** 2 + dy ** 2)
+        if kFrame == '0':
+            smooT[int(kPerson) - 1] = dist
+        smooT[int(kPerson) - 1] = (smooT[int(kPerson) - 1] + dist) / 2
+        x = xx
+        y = yy - smooT[int(kPerson) - 1]
         posX[int(kFrame)][int(kPerson)] = 1
         smoothX[int(kPerson)].append(x)
         posY[int(kFrame)][int(kPerson)] = 1
@@ -84,6 +94,7 @@ for i in [1, 2, 3, 4, 5]:
 # 逐帧遍历 videos, write some json in it
 # 0 - 1096 
 frame_num = 0
+smooT2 = [0, 0 ,0, 0, 0]
 while True:
     print("frame: {%d}"%frame_num)
     ret, frame = capture.read()
@@ -111,28 +122,26 @@ while True:
 
     for i in range(60):
         time_since_update[str(i)] += 1
-        if(time_since_update[str(i)] >= 5):
-            #pts[i].clear()
-            if len(pts[i]) == 0:
-                continue
-            pts[i].popleft()
+        if(time_since_update[str(i)] >= 3):
+            for _ in range(3):
+                if len(pts[i]) == 0:
+                    break
+                pts[i].popleft()
     
     for _id in range(60):
         colorB = COLORS[int(_id / 10) - 1].copy()
         if len(pts[_id]) == 0:
             continue
         for j in range(len(pts[_id]) - 1, -1, -1):
-            if pts[_id][j] is None:
-                continue
-            #thickness = int(np.sqrt(64 / float(j + 1)) * 2)
-            #thickness = int(np.sqrt(48 + j * 6))
+            #if pts[_id][j] is None:
+            #    continue
             thickness = int(np.sqrt(20 + j * 1))
             #cv2.circle(frame, (pts[track_id][j]), 2, (color), thickness)
-            # for _c in range(3):
-            #     if colorB[_c] < 200:
-            #         colorB[_c] = colorB[_c] + 10
-            #     else:
-            #         colorB[_c] = colorB[_c] - 10
+            for _c in range(3):
+                if colorB[_c] < 200:
+                    colorB[_c] = colorB[_c] + 2
+                else:
+                    colorB[_c] = colorB[_c] - 2
             cv2.circle(frame, (pts[_id][j]), thickness, (colorB),  -1)
 
 
@@ -144,6 +153,10 @@ while True:
         dy = (vPerson[3] - vPerson[1]) / 2
         dist = np.sqrt(dx ** 2 +  dy ** 2)
         print(dist)
+        # 平滑半径 
+        if kFrame == '0':
+            smooT2[int(kPerson) - 1] = dist
+        smooT2[int(kPerson) - 1] = (smooT2[int(kPerson) - 1] + dist) / 2
         
         # 透明操作
         colorG = COLORS[int(kPerson) - 1]
@@ -151,18 +164,32 @@ while True:
         # cv2.circle(oriFrame, (xx, yy), int(dist), (255, 255, 255), -1)
         
         #平滑处理
-        if frame_num < 1090:
-            xText = posX[frame_num][int(kPerson)]
-            yText = posY[frame_num][int(kPerson)]
-        else:
-            xText = (vPerson[0] * 4 + vPerson[2]) / 5
-            yText = vPerson[1] + 5
+        xTemp = xx
+        yTemp = yy - smooT2[int(kPerson) - 1]
+        xpersonQue[int(kPerson)].append(xTemp)
+        ypersonQue[int(kPerson)].append(yTemp)
+        xSum = 0
+        ySum = 0
+        for _it in range(len(xpersonQue[int(kPerson)])):
+            xSum = xSum + xpersonQue[int(kPerson)][_it]
+            ySum = ySum + ypersonQue[int(kPerson)][_it]
+        xText1 = xSum / len(xpersonQue[int(kPerson)])
+        yText1 = ySum / len(xpersonQue[int(kPerson)])
 
+        if frame_num < 1090:
+            xText2 = posX[frame_num][int(kPerson)]
+            yText2 = posY[frame_num][int(kPerson)]
+        else:
+            xText2 = xTemp
+            yText2 = yTemp
+        xText = (xText1 + xText2) / 2
+        yText = (yText1 + yText2) / 2
         colorT = COLORS[int(kPerson) - 1]
         cv2.putText(frame, kPerson, (int(xText), int(yText)), 0, 5e-3 * 150, (255, 255, 255), 6)
-        cv2.putText(frame, kPerson, (int(xText), int(yText)), 0, 5e-3 * 150, (255, 100, 0), 3)
+        #cv2.putText(frame, kPerson, (int(xText), int(yText)), 0, 5e-3 * 150, (255, 100, 0), 3)
+        cv2.putText(frame, kPerson, (int(xText), int(yText)), 0, 5e-3 * 150, (colorT), 3)
 
-    img_mix = cv2.addWeighted(frame, 0.4, oriFrame, 0.6, 0)
+    img_mix = cv2.addWeighted(frame, 0.8, oriFrame, 0.4, 0)
     cv2.imshow("test", img_mix)
     #cv2.imshow("test", frame)
     #cv2.imshow("test", oriFrame)

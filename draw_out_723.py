@@ -126,7 +126,6 @@ while True:
         xText = xSum / len(xpersonQue[int(kPerson)])
         yText = ySum / len(xpersonQue[int(kPerson)])
         colorT = COLORS[int(kPerson) - 1]
-        colorT = COLORS[int(kPerson) - 1]
         #cv2.putText(frame, kPerson, (int(xText), int(yText)), 0, 5e-3 * 250, (colorT), 3)
         cv2.putText(frame, kPerson, (int(xTemp), int(yTemp)), 0, 5e-3 * 250, (colorT), 3)
 
